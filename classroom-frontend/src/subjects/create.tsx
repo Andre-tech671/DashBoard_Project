@@ -3,7 +3,7 @@ import React from 'react'
 function SubjectsCreate() {
   return (
     <div>
-      
+      <h1>Create</h1>
     </div>
   )
 }
