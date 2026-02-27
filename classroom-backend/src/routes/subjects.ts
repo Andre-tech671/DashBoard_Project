@@ -30,9 +30,12 @@ router.get('/', async (req, res) => {
         const { search, department, page = 1, limit = 10 } = req.query;
 
         // --- Pagination setup ---
-        const currentPage = Math.max(1, +page);         // Ensure page is at least 1
-        const limitPerPage = Math.max(1, +limit);       // Ensure limit is at least 1
+        const currentPage = Math.max(1, parseInt(String(page), 10) || 1);         // Ensure page is at least 1
+        const limitPerPage = Math.max(1, parseInt(String(limit), 10) || 100); // Ensure limit is at least 1, default to 100 if not provided
+                     // Ensure limit is at least 1
         const offset = (currentPage - 1) * limitPerPage;
+
+    
 
         // --- Build filter conditions ---
         const filterConditions = [];
@@ -50,6 +53,8 @@ router.get('/', async (req, res) => {
         // Department filter: match department name
         if (department) {
             filterConditions.push(ilike(departments.name, `%${department}%`));
+            const deptPattern = `${String(department).replace(/[%_]/g, '\\$&')}%`; // Escape % and _ for SQL LIKE
+            filterConditions.push(ilike(departments.name, deptPattern));
         }
 
         // Combine filters with AND, or leave undefined if no filters

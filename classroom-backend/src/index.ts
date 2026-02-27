@@ -8,6 +8,11 @@ import subjectsRouter from './routes/subjects';
 const app = express();
 const PORT = 8000;
 
+dotenv.config();
+
+if (!process.env.FRONTEND_URL) {
+  throw new Error('FRONTEND_URL is not defined in environment variables');
+}
 // Load environment variables from .env file
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Allow requests from the frontend URL
