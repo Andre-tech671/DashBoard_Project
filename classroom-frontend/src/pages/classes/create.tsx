@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2 } from 'lucide-react'
+import UploadWidget from '@/components/upload-widget'
 
 
 
@@ -31,12 +32,13 @@ function ClassesCreate() {
         resource: 'classes',
         action: 'create'
     },
-    defaultValues:{
-       status: 'active',
-    },
   })
 
-  const {handleSubmit, formState: {isSubmitting, control}} = form;
+  const {
+    handleSubmit, 
+    formState: {isSubmitting, errors},
+    control,
+ } = form;
 
  const onSubmit = async (values: Z.infer<typeof classSchema>) => {
   try {
@@ -91,6 +93,24 @@ const subjects = [
   }
 ];
 
+const bannerPublicId = form.watch('bannerCldPubId');
+const setBannerImage = (file: any, field: any) => {
+    if(file){
+        field.onChange(file.url);
+        form.setValue('bannerCldPubId', file.publicId, {
+            shouldValidate: true,
+            shouldDirty: true,
+        })
+    }else{
+        field.onChange('');
+        form.setValue('bannerCldPubId', '', {
+            shouldValidate: true,
+            shouldDirty: true,
+        })
+
+    }
+}
+
 
   return (
     <CreateView>
@@ -117,11 +137,26 @@ const subjects = [
                 <Form {...form}>
                     <form onSubmit={handleSubmit(onSubmit)} className='space-y-5'>
                         {/* Add your form fields here */}
-                        <div className='space-y-3'>
-                            <Label>
-                                Banner image <span className='text-orange-600'>*</span>
-                            </Label>
-                        </div>
+                        <FormField 
+                        control={control} 
+                        name="bannerUrl" 
+                         render= {({ field }) =>(
+                            <FormItem>
+                                <FormLabel>Banner Image<span className='text-orange-600'>*</span></FormLabel>
+                                <FormControl>
+                                    <UploadWidget 
+                                    value={field.value ? {url: field.value, publicId: bannerPublicId ?? ''} : null}
+                                    onChange={(file: any, field: any) => setBannerImage(file, field)}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                {errors.bannerCldPubId && !errors.bannerUrl && (
+                                    <p className='text-destructive'>{errors.bannerCldPubId.message?.toString()}</p>
+                                )}
+                            </FormItem>
+                         )}
+                       
+                        />
                         <FormField control={control} 
                             name="name" 
                             render={({field})=>(
@@ -198,6 +233,7 @@ const subjects = [
                             </FormItem>
                         )}
                         />
+                        </div>
 
                         <div className="grid sm:grid-cols-2 gap-4">
                         <FormField
@@ -274,8 +310,6 @@ const subjects = [
                             </FormItem>
                         )}
                         />
-
-                        </div>
 
                         <Button type="submit" size="lg" className="w-full">
                         {isSubmitting ? (
