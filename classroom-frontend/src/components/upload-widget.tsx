@@ -42,7 +42,7 @@ function UploadWidget({
           uploadPreset: CLOUDINARY_UPLOAD_PRESET,
           multiple: false,
           folder: "uploads",
-          maxFileSize: 5_000_000,
+          maxFileSize: 5_000_000,   
           clientAllowedFormats: ["png", "jpg", "jpeg"],
         },
         (error, result) => {
