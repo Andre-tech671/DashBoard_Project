@@ -48,6 +48,12 @@ export const subjects = pgTable("subjects", {
   ...timestamps,
 });
 
+export type Schedule = {
+  day: string;
+  startTime: string;
+  endTime: string;
+};
+
 export const classes = pgTable(
   "classes",
   {
