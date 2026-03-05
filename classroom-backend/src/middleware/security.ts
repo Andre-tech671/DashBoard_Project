@@ -23,7 +23,7 @@ const securityMiddleware = async (req: Request, res: Response, next: NextFunctio
                 break;
             default:
                 limit=5;
-                message ='Guest request limit exceeded (5 per minute). Please signup for Higher Limts'.;
+                message ='Guest request limit exceeded (5 per minute). Please signup for Higher Limits';
                 break;
         
         }
@@ -48,15 +48,15 @@ const securityMiddleware = async (req: Request, res: Response, next: NextFunctio
 
         
         if(decision.isDenied() && decision.reason.isBot()){
-            return res.status(403).json({
-                error: 'Forbiden',
+            return res.status(429).json({
+                error: 'Forbidden',
                 message: 'Automated requests are not allowed'
             })
         }
 
          if(decision.isDenied() && decision.reason.isShield()){
             return res.status(403).json({
-                error: 'Forbiden',
+                error: 'Forbidden',
                 message: 'Request blocked by security Policy'
             })
         }

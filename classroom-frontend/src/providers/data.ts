@@ -6,6 +6,23 @@ if(!BACKEND_BASE_URL){
   throw new Error('BACKEND_BASE_URL is not configured. please set VITE_BACKEND_BASE_URL is in your .env file')
 }
 
+const buildHttpError = async (response: Response): Promise<HttpError> =>{
+  let message = 'Request Failed.';
+  try{
+    const payload = (await response.json()) as {message?: string }
+
+    if(payload?.message) message = payload.message;
+
+  }catch{
+   //ignore error
+  }
+  return {
+    message,
+    statusCode: response.status
+  }
+}
+
+
 const options: CreateDataProviderOptions = {
   getList: {
     getEndpoint: ({resource}) => resource,
@@ -31,11 +48,15 @@ const options: CreateDataProviderOptions = {
     },
 
     mapResponse: async (response) => {
+      if(!response.ok) throw await buildHttpError(response);
+
       const payLoad: ListResponse = await response.clone().json();
 
       return  payLoad.data ?? [];
     },
     getTotalCount: async (response) => {
+      if(!response.ok) throw await buildHttpError(response);
+
       const payLoad: ListResponse = await response.clone().json();
 
       return payLoad.pagination?.total ?? payLoad.data?.length ?? 0;
