@@ -9,6 +9,8 @@ import dotenv from 'dotenv';
 
 import subjectsRouter from './routes/subjects';
 import securityMiddleware from './middleware/security';
+import usersRouter from './routes/users';
+import classesRouter from './routes/classes';
 import {toNodeHandler} from "better-auth/node";
 import {auth} from "./lib/auth";
 
@@ -33,10 +35,15 @@ app.all('/api/auth/*splat', toNodeHandler(auth));
 // JSON middleware
 app.use(express.json());
 
+// Routes
+app.use('/api/subjects', subjectsRouter);
+
+app.use("/api/users", usersRouter);
+
+app.use('/api/classes', classesRouter);
+
 // Security middleware
 app.use(securityMiddleware);
-
-app.use('/api/subjects', subjectsRouter);
 
 // GET route that returns a short message
 app.get('/', (req: Request, res: Response) => {
