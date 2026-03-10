@@ -4,7 +4,7 @@ export type Subject = {
   code: string;
   description: string;
   department: string;
-  createdAt?: string;
+  createdAt?: Date | string;
 };
 
 export type ListResponse<T = unknown> = {
@@ -73,8 +73,8 @@ export enum UserRole {
 
 export type User = {
   id: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   email: string;
   name: string;
   role: UserRole;
