@@ -9,7 +9,7 @@ import {
   timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
-import { user } from "./auth";
+import { user } from "./auth.js";
 
 const timestamps = {
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -47,12 +47,6 @@ export const subjects = pgTable("subjects", {
 
   ...timestamps,
 });
-
-export type Schedule = {
-  day: string;
-  startTime: string;
-  endTime: string;
-};
 
 export const classes = pgTable(
   "classes",
