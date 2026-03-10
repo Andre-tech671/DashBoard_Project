@@ -19,12 +19,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-if (!process.env.FRONTEND_URL) {
-  throw new Error('FRONTEND_URL is not defined in environment variables');
-}
 // Load environment variables from .env file
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://magementdashboard.netlify.app/', // Allow requests from the frontend URL
+  origin: process.env.FRONTEND_URL || 'https://magementdashboard.netlify.app', // Allow requests from your Netlify or Render frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
   credentials: true, // Allow cookies and credentials

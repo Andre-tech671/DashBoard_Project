@@ -1,8 +1,11 @@
 import { createDataProvider, CreateDataProviderOptions } from "@refinedev/rest";
 
 import { CreateResponse, GetOneResponse, ListResponse } from "@/types";
-import { BACKEND_BASE_URL } from "@/constants";
 
+// The single source of truth for your API URL.
+// It reads from an environment variable and has a fallback for local development.
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 const options: CreateDataProviderOptions = {
   getList: {
     getEndpoint: ({ resource }) => resource,
@@ -83,6 +86,6 @@ const options: CreateDataProviderOptions = {
   },
 };
 
-const { dataProvider } = createDataProvider(BACKEND_BASE_URL, options);
+const { dataProvider } = createDataProvider(API_URL, options);
 
 export { dataProvider };
