@@ -24,7 +24,7 @@ if (!process.env.FRONTEND_URL) {
 }
 // Load environment variables from .env file
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://your-app-name.netlify.app', // Allow requests from the frontend URL
+  origin: process.env.FRONTEND_URL || 'https://magementdashboard.netlify.app/', // Allow requests from the frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
   credentials: true, // Allow cookies and credentials
