@@ -20,6 +20,7 @@ const PORT = process.env.PORT || 8000;
 // ✅ Allow multiple origins (local + deployed frontend)
 const allowedOrigins = [
   "http://localhost:3000", // local dev
+  "http://localhost:5173", // local dev
   "https://magementdashboard.netlify.app", // deployed frontend
   process.env.FRONTEND_URL // optional dynamic value
 ].filter(Boolean); // remove undefined/null
