@@ -1,6 +1,7 @@
 import type { AuthProvider } from "@refinedev/core";
 import { User, SignUpPayload } from "@/types";
 import { authClient } from "@/lib/auth-client";
+import { BACKEND_BASE_URL } from "@/constants";
 
 export const authProvider: AuthProvider = {
   register: async ({
@@ -50,7 +51,16 @@ export const authProvider: AuthProvider = {
       };
     }
   },
-  login: async ({ email, password }) => {
+  login: async ({ email, password, provider }) => {
+    if (provider) {
+      // This is the correct flow for social providers.
+      // It should redirect to the backend's OAuth endpoint.
+      window.location.href = `${
+        BACKEND_BASE_URL || "http://localhost:8000"
+      }/auth/${provider}`;
+      return { success: true };
+    }
+
     try {
       const { data, error } = await authClient.signIn.email({
         email: email,

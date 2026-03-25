@@ -5,7 +5,7 @@ import * as schema from "../db/schema";
 
 
 export const auth = betterAuth({
-    secret: process.env.Better_AUTH_SECRET!,
+    secret: process.env.BETTER_AUTH_SECRET!,
     baseURL: process.env.BACKEND_URL || "http://localhost:8000",
     trustedOrigins: [process.env.FRONTEND_URL || "http://localhost:5173"],
     database: drizzleAdapter(db, {
@@ -15,6 +15,16 @@ export const auth = betterAuth({
 
     emailAndPassword: {
         enabled: true,
+    },
+    google: {
+        enabled: true,
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+    github: {
+        enabled: true,
+        clientId: process.env.GITHUB_CLIENT_ID!,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET!,
     },
     user: {
         additionalFields: {
