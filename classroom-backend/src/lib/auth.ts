@@ -12,6 +12,10 @@ export const auth = betterAuth({
         provider: "pg", // or "mysql", "sqlite"
         schema,
     }),
+    rateLimit: {
+        window: 60,
+        max: 100,
+    },
 
     emailAndPassword: {
         enabled: true,

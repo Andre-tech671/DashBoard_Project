@@ -5,12 +5,17 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
-import subjectsRouter from './routes/subjects';
-import securityMiddleware from './middleware/security';
-import usersRouter from './routes/users';
-import classesRouter from './routes/classes';
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
+
+import subjectsRouter from './routes/subjects';
+import usersRouter from './routes/users';
+import classesRouter from './routes/classes';
+import departmentsRouter from './routes/departments';
+import statsRouter from './routes/stats';
+import enrollmentsRouter from './routes/enrollments';
+
+import securityMiddleware from './middleware/security';
 
 dotenv.config();
 
@@ -19,17 +24,15 @@ const PORT = process.env.PORT || 8000;
 
 // ✅ Allow multiple origins (local + deployed frontend)
 const allowedOrigins = [
-  "http://localhost:3000", // local dev
-  "http://localhost:5173", // local dev
+  "http://localhost:3000",   // React dev
+  "http://localhost:5173",   // Vite dev
   "https://magementdashboard.netlify.app", // deployed frontend
-  process.env.FRONTEND_URL // optional dynamic value
-].filter(Boolean); // remove undefined/null
+  process.env.FRONTEND_URL   // optional dynamic value
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (like Postman or curl)
-    if (!origin) return callback(null, true);
-
+    if (!origin) return callback(null, true); // allow Postman/curl
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -47,17 +50,20 @@ app.all('/api/auth/*splat', toNodeHandler(auth));
 // JSON middleware
 app.use(express.json());
 
+// Security middleware (apply globally)
+app.use(securityMiddleware);
+
 // Routes
 app.use('/api/subjects', subjectsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/classes', classesRouter);
-
-// Security middleware
-app.use(securityMiddleware);
+app.use('/api/departments', departmentsRouter);
+app.use('/api/stats', statsRouter);
+app.use('/api/enrollments', enrollmentsRouter);
 
 // Root route
 app.get('/', (req: Request, res: Response) => {
-  res.json({ message: 'Hello, World!' });
+  res.json({ message: 'Backend server is running!' });
 });
 
 // Start server

@@ -46,7 +46,7 @@ export const authProvider: AuthProvider = {
         success: false,
         error: {
           name: "Registration failed",
-          message: "Unable to create account. Please try again.",
+          message: (error as any)?.message || "Unable to create account. Please try again.",
         },
       };
     }
@@ -55,9 +55,8 @@ export const authProvider: AuthProvider = {
     if (provider) {
       // This is the correct flow for social providers.
       // It should redirect to the backend's OAuth endpoint.
-      window.location.href = `${
-        BACKEND_BASE_URL || "http://localhost:8000"
-      }/auth/${provider}`;
+      const baseUrl = (BACKEND_BASE_URL || "http://localhost:8000").replace(/\/$/, "");
+      window.location.href = `${baseUrl}/auth/${provider}`;
       return { success: true };
     }
 
