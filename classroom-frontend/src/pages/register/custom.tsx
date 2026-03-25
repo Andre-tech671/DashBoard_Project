@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 export const Register = () => {
-  const { mutate: register, isLoading } = useRegister();
+  const { mutate: register, isPending: isLoading } = useRegister();
   const { mutate: login } = useLogin();
 
   const [name, setName] = useState("");
