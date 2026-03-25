@@ -117,7 +117,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get class details with counts
+// Get class details with teacher, subject and department
 router.get("/:id", async (req, res) => {
   try {
     const classId = Number(req.params.id);
