@@ -18,7 +18,7 @@ export const authProvider: AuthProvider = {
         email,
         password,
         image,
-        role,
+        role: role || "student", // Ensure role defaults to student if missing
         imageCldPubId,
       } as SignUpPayload);
 
@@ -55,7 +55,8 @@ export const authProvider: AuthProvider = {
     if (provider) {
       // This is the correct flow for social providers.
       // It should redirect to the backend's OAuth endpoint.
-      const baseUrl = (BACKEND_BASE_URL || "http://localhost:8000").replace(/\/$/, "");
+      // .replace(/\/+$/, "") removes one or more trailing slashes
+      const baseUrl = (BACKEND_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
       window.location.href = `${baseUrl}/auth/${provider}`;
       return { success: true };
     }

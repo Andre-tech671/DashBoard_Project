@@ -2,6 +2,7 @@ import AgentAPI from 'apminsight';
 AgentAPI.config();
 
 import express, { Request, Response } from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
@@ -15,7 +16,7 @@ import departmentsRouter from './routes/departments';
 import statsRouter from './routes/stats';
 import enrollmentsRouter from './routes/enrollments';
 
-import securityMiddleware from './middleware/security';
+// import securityMiddleware from './middleware/security';
 
 dotenv.config();
 
@@ -51,7 +52,23 @@ app.all('/api/auth/*splat', toNodeHandler(auth));
 app.use(express.json());
 
 // Security middleware (apply globally)
-app.use(securityMiddleware);
+// app.use(securityMiddleware); // Replaced with inline helmet config
+
+// Using helmet for security headers.
+// The CSP is configured to be permissive for development to allow tools like
+// Refine Devtools which may use 'eval'. You should tighten this for production.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+      },
+    },
+  })
+);
 
 // Routes
 app.use('/api/subjects', subjectsRouter);
