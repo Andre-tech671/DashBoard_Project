@@ -88,6 +88,23 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.patch("/:id", async (req, res) => {
+  try {
+    const { name, code, description } = req.body;
+    const [updated] = await db
+      .update(departments)
+      .set({ name, code, description, updatedAt: new Date() })
+      .where(eq(departments.id, Number(req.params.id)))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: "Department not found" });
+    res.status(200).json({ data: updated });
+  } catch (error) {
+    console.error("PATCH /departments/:id error:", error);
+    res.status(500).json({ error: "Failed to update department" });
+  }
+});
+
 // Get department details with counts
 router.get("/:id", async (req, res) => {
   try {
@@ -352,6 +369,30 @@ router.get("/:id/users", async (req, res) => {
   } catch (error) {
     console.error("GET /departments/:id/users error:", error);
     res.status(500).json({ error: "Failed to fetch department users" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    
+    // Check for linked subjects
+    const [linkedSubjects] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(subjects)
+      .where(eq(subjects.departmentId, id));
+
+    if ((linkedSubjects?.count ?? 0) > 0) {
+      return res.status(400).json({ 
+        error: "Cannot delete department with associated subjects." 
+      });
+    }
+
+    await db.delete(departments).where(eq(departments.id, id));
+    res.status(204).end();
+  } catch (error) {
+    console.error("DELETE /departments/:id error:", error);
+    res.status(500).json({ error: "Failed to delete department" });
   }
 });
 

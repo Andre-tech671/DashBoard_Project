@@ -9,6 +9,13 @@ const router = express.Router();
 // Get all users with optional search, role filter, and pagination
 router.get("/", async (req, res) => {
   try {
+    // Permission Check: Only admins should list all users
+    // @ts-ignore - Assuming auth middleware populates req.user
+    const requester = req.user; 
+    if (requester?.role !== "admin") {
+      return res.status(403).json({ error: "Unauthorized access" });
+    }
+
     const { search, role, page = 1, limit = 10 } = req.query;
 
     const currentPage = Math.max(1, +page);
@@ -60,6 +67,49 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.post("/", async (req, res) => {
+  try {
+    // Permission Check: Admin only
+    // @ts-ignore
+    if (req.user?.role !== "admin") {
+      return res.status(403).json({ error: "Only admins can create users" });
+    }
+
+    const { name, email, password, role, status } = req.body;
+    const [createdUser] = await db
+      .insert(user)
+      .values({ name, email, role, status })
+      .returning();
+    res.status(201).json({ data: createdUser });
+  } catch (error) {
+    console.error("POST /users error:", error);
+    res.status(500).json({ error: "Failed to create user" });
+  }
+});
+
+router.patch("/:id", async (req, res) => {
+  try {
+    // Permission Check: Admin only or self-update (simplified to admin for now)
+    // @ts-ignore
+    if (req.user?.role !== "admin") {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const { name, role, status } = req.body;
+    const [updatedUser] = await db
+      .update(user)
+      .set({ name, role, status, updatedAt: new Date() })
+      .where(eq(user.id, req.params.id))
+      .returning();
+
+    if (!updatedUser) return res.status(404).json({ error: "User not found" });
+    res.status(200).json({ data: updatedUser });
+  } catch (error) {
+    console.error("PATCH /users/:id error:", error);
+    res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
 // Get user details with role-specific data
 router.get("/:id", async (req, res) => {
   try {
@@ -95,19 +145,6 @@ router.get("/:id/departments", async (req, res) => {
     if (!userRecord) {
       return res.status(404).json({ error: "User not found" });
     }
-
-    if (userRecord.role !== "teacher" && userRecord.role !== "student") {
-      return res.status(200).json({
-        data: [],
-        pagination: {
-          page: 1,
-          limit: 0,
-          total: 0,
-          totalPages: 0,
-        },
-      });
-    }
-
     const currentPage = Math.max(1, +page);
     const limitPerPage = Math.max(1, +limit);
     const offset = (currentPage - 1) * limitPerPage;
@@ -120,22 +157,22 @@ router.get("/:id/departments", async (req, res) => {
             .leftJoin(subjects, eq(subjects.departmentId, departments.id))
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
             .where(eq(classes.teacherId, userId))
-        : await db
+        : userRecord.role === "student"
+        ? await db
             .select({ count: sql<number>`count(distinct ${departments.id})` })
             .from(departments)
             .leftJoin(subjects, eq(subjects.departmentId, departments.id))
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
             .leftJoin(enrollments, eq(enrollments.classId, classes.id))
-            .where(eq(enrollments.studentId, userId));
+            .where(eq(enrollments.studentId, userId))
+        : await db.select({ count: sql<number>`count(*)` }).from(departments);
 
     const totalCount = countResult[0]?.count ?? 0;
 
     const departmentsList =
       userRecord.role === "teacher"
         ? await db
-            .select({
-              ...getTableColumns(departments),
-            })
+            .select({ ...getTableColumns(departments) })
             .from(departments)
             .leftJoin(subjects, eq(subjects.departmentId, departments.id))
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
@@ -151,10 +188,9 @@ router.get("/:id/departments", async (req, res) => {
             .orderBy(desc(departments.createdAt))
             .limit(limitPerPage)
             .offset(offset)
-        : await db
-            .select({
-              ...getTableColumns(departments),
-            })
+        : userRecord.role === "student"
+        ? await db
+            .select({ ...getTableColumns(departments) })
             .from(departments)
             .leftJoin(subjects, eq(subjects.departmentId, departments.id))
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
@@ -168,6 +204,12 @@ router.get("/:id/departments", async (req, res) => {
               departments.createdAt,
               departments.updatedAt
             )
+            .orderBy(desc(departments.createdAt))
+            .limit(limitPerPage)
+            .offset(offset)
+        : await db
+            .select({ ...getTableColumns(departments) })
+            .from(departments)
             .orderBy(desc(departments.createdAt))
             .limit(limitPerPage)
             .offset(offset);
@@ -201,19 +243,6 @@ router.get("/:id/subjects", async (req, res) => {
     if (!userRecord) {
       return res.status(404).json({ error: "User not found" });
     }
-
-    if (userRecord.role !== "teacher" && userRecord.role !== "student") {
-      return res.status(200).json({
-        data: [],
-        pagination: {
-          page: 1,
-          limit: 0,
-          total: 0,
-          totalPages: 0,
-        },
-      });
-    }
-
     const currentPage = Math.max(1, +page);
     const limitPerPage = Math.max(1, +limit);
     const offset = (currentPage - 1) * limitPerPage;
@@ -225,12 +254,14 @@ router.get("/:id/subjects", async (req, res) => {
             .from(subjects)
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
             .where(eq(classes.teacherId, userId))
-        : await db
+        : userRecord.role === "student"
+        ? await db
             .select({ count: sql<number>`count(distinct ${subjects.id})` })
             .from(subjects)
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
             .leftJoin(enrollments, eq(enrollments.classId, classes.id))
-            .where(eq(enrollments.studentId, userId));
+            .where(eq(enrollments.studentId, userId))
+        : await db.select({ count: sql<number>`count(*)` }).from(subjects);
 
     const totalCount = countResult[0]?.count ?? 0;
 
@@ -265,7 +296,8 @@ router.get("/:id/subjects", async (req, res) => {
             .orderBy(desc(subjects.createdAt))
             .limit(limitPerPage)
             .offset(offset)
-        : await db
+        : userRecord.role === "student"
+        ? await db
             .select({
               ...getTableColumns(subjects),
               department: {
@@ -292,6 +324,18 @@ router.get("/:id/subjects", async (req, res) => {
               departments.createdAt,
               departments.updatedAt
             )
+            .orderBy(desc(subjects.createdAt))
+            .limit(limitPerPage)
+            .offset(offset)
+        : await db
+            .select({
+              ...getTableColumns(subjects),
+              department: {
+                ...getTableColumns(departments),
+              },
+            })
+            .from(subjects)
+            .leftJoin(departments, eq(subjects.departmentId, departments.id))
             .orderBy(desc(subjects.createdAt))
             .limit(limitPerPage)
             .offset(offset);

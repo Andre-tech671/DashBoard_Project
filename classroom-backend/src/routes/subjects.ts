@@ -9,6 +9,8 @@ const router = express.Router();
 // Get all subjects with optional search, department filter, and pagination
 router.get("/", async (req, res) => {
   try {
+    // @ts-ignore
+    const requester = req.user;
     const { search, department, page = 1, limit = 10 } = req.query;
 
     const currentPage = Math.max(1, +page);
@@ -16,6 +18,9 @@ router.get("/", async (req, res) => {
     const offset = (currentPage - 1) * limitPerPage;
 
     const filterConditions = [];
+
+    // Data Scoping: If teacher, could restrict to their department if needed.
+    // For now, let's restrict write actions.
 
     if (search) {
       filterConditions.push(
@@ -74,6 +79,11 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
+    // @ts-ignore
+    if (req.user?.role !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
     const { departmentId, name, code, description } = req.body;
 
     const [createdSubject] = await db
@@ -87,6 +97,46 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("POST /subjects error:", error);
     res.status(500).json({ error: "Failed to create subject" });
+  }
+});
+
+router.patch("/:id", async (req, res) => {
+  try {
+    const { departmentId, name, code, description } = req.body;
+    const [updated] = await db
+      .update(subjects)
+      .set({ departmentId, name, code, description, updatedAt: new Date() })
+      .where(eq(subjects.id, Number(req.params.id)))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: "Subject not found" });
+    res.status(200).json({ data: updated });
+  } catch (error) {
+    console.error("PATCH /subjects/:id error:", error);
+    res.status(500).json({ error: "Failed to update subject" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    // Check for linked classes
+    const [linkedClasses] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(classes)
+      .where(eq(classes.subjectId, id));
+
+    if ((linkedClasses?.count ?? 0) > 0) {
+      return res.status(400).json({ 
+        error: "Cannot delete subject with associated classes." 
+      });
+    }
+
+    await db.delete(subjects).where(eq(subjects.id, id));
+    res.status(204).end();
+  } catch (error) {
+    console.error("DELETE /subjects/:id error:", error);
+    res.status(500).json({ error: "Failed to delete subject" });
   }
 });
 
