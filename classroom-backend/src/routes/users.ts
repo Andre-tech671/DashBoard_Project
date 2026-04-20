@@ -9,13 +9,6 @@ const router = express.Router();
 // Get all users with optional search, role filter, and pagination
 router.get("/", async (req, res) => {
   try {
-    // Permission Check: Only admins should list all users
-    // @ts-ignore - Assuming auth middleware populates req.user
-    const requester = req.user; 
-    if (requester?.role !== "admin") {
-      return res.status(403).json({ error: "Unauthorized access" });
-    }
-
     const { search, role, page = 1, limit = 10 } = req.query;
 
     const currentPage = Math.max(1, Number(page));
