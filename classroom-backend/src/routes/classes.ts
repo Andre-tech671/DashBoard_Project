@@ -13,8 +13,8 @@ router.get("/", async (req, res) => {
     const requester = req.user;
     const { search, subject, teacher, page = 1, limit = 10 } = req.query;
 
-    const currentPage = Math.max(1, +page);
-    const limitPerPage = Math.max(1, +limit);
+    const currentPage = Math.max(1, Number(page));
+    const limitPerPage = Math.max(1, Number(limit));
     const offset = (currentPage - 1) * limitPerPage;
 
     const filterConditions = [];
@@ -53,7 +53,7 @@ router.get("/", async (req, res) => {
       .leftJoin(user, eq(classes.teacherId, user.id))
       .where(whereClause);
 
-    const totalCount = countResult[0]?.count ?? 0;
+    const totalCount = Number(countResult[0]?.count ?? 0);
 
     const classesList = await db
       .select({

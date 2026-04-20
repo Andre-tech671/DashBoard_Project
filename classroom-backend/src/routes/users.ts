@@ -2,7 +2,7 @@ import express from "express";
 import { and, desc, eq, ilike, or, sql, getTableColumns } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { classes, departments, enrollments, subjects, user } from "../db/schema/index.js";
+import { classes, departments, enrollments, subjects, user, type UserRoles } from "../db/schema/index.js";
 
 const router = express.Router();
 
@@ -18,8 +18,8 @@ router.get("/", async (req, res) => {
 
     const { search, role, page = 1, limit = 10 } = req.query;
 
-    const currentPage = Math.max(1, +page);
-    const limitPerPage = Math.max(1, +limit);
+    const currentPage = Math.max(1, Number(page));
+    const limitPerPage = Math.max(1, Number(limit));
     const offset = (currentPage - 1) * limitPerPage;
 
     const filterConditions = [];
@@ -42,7 +42,7 @@ router.get("/", async (req, res) => {
       .from(user)
       .where(whereClause);
 
-    const totalCount = countResult[0]?.count ?? 0;
+    const totalCount = Number(countResult[0]?.count ?? 0);
 
     const usersList = await db
       .select()
@@ -145,29 +145,32 @@ router.get("/:id/departments", async (req, res) => {
     if (!userRecord) {
       return res.status(404).json({ error: "User not found" });
     }
-    const currentPage = Math.max(1, +page);
-    const limitPerPage = Math.max(1, +limit);
+
+    const currentPage = Math.max(1, Number(page));
+    const limitPerPage = Math.max(1, Number(limit));
     const offset = (currentPage - 1) * limitPerPage;
 
-    const countResult =
-      userRecord.role === "teacher"
-        ? await db
+    let countResult;
+    if (userRecord.role === "teacher") {
+      countResult = await db
             .select({ count: sql<number>`count(distinct ${departments.id})` })
             .from(departments)
-            .leftJoin(subjects, eq(subjects.departmentId, departments.id))
-            .leftJoin(classes, eq(classes.subjectId, subjects.id))
-            .where(eq(classes.teacherId, userId))
-        : userRecord.role === "student"
-        ? await db
+            .innerJoin(subjects, eq(subjects.departmentId, departments.id))
+            .innerJoin(classes, eq(classes.subjectId, subjects.id))
+            .where(eq(classes.teacherId, userId));
+    } else if (userRecord.role === "student") {
+      countResult = await db
             .select({ count: sql<number>`count(distinct ${departments.id})` })
             .from(departments)
-            .leftJoin(subjects, eq(subjects.departmentId, departments.id))
-            .leftJoin(classes, eq(classes.subjectId, subjects.id))
-            .leftJoin(enrollments, eq(enrollments.classId, classes.id))
-            .where(eq(enrollments.studentId, userId))
-        : await db.select({ count: sql<number>`count(*)` }).from(departments);
+            .innerJoin(subjects, eq(subjects.departmentId, departments.id))
+            .innerJoin(classes, eq(classes.subjectId, subjects.id))
+            .innerJoin(enrollments, eq(enrollments.classId, classes.id))
+            .where(eq(enrollments.studentId, userId));
+    } else {
+      countResult = await db.select({ count: sql<number>`count(*)` }).from(departments);
+    }
 
-    const totalCount = countResult[0]?.count ?? 0;
+    const totalCount = Number(countResult[0]?.count ?? 0);
 
     const departmentsList =
       userRecord.role === "teacher"
@@ -177,14 +180,7 @@ router.get("/:id/departments", async (req, res) => {
             .leftJoin(subjects, eq(subjects.departmentId, departments.id))
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
             .where(eq(classes.teacherId, userId))
-            .groupBy(
-              departments.id,
-              departments.code,
-              departments.name,
-              departments.description,
-              departments.createdAt,
-              departments.updatedAt
-            )
+            .groupBy(departments.id)
             .orderBy(desc(departments.createdAt))
             .limit(limitPerPage)
             .offset(offset)
@@ -196,14 +192,7 @@ router.get("/:id/departments", async (req, res) => {
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
             .leftJoin(enrollments, eq(enrollments.classId, classes.id))
             .where(eq(enrollments.studentId, userId))
-            .groupBy(
-              departments.id,
-              departments.code,
-              departments.name,
-              departments.description,
-              departments.createdAt,
-              departments.updatedAt
-            )
+            .groupBy(departments.id)
             .orderBy(desc(departments.createdAt))
             .limit(limitPerPage)
             .offset(offset)
@@ -243,27 +232,30 @@ router.get("/:id/subjects", async (req, res) => {
     if (!userRecord) {
       return res.status(404).json({ error: "User not found" });
     }
-    const currentPage = Math.max(1, +page);
-    const limitPerPage = Math.max(1, +limit);
+
+    const currentPage = Math.max(1, Number(page));
+    const limitPerPage = Math.max(1, Number(limit));
     const offset = (currentPage - 1) * limitPerPage;
 
-    const countResult =
-      userRecord.role === "teacher"
-        ? await db
+    let countResult;
+    if (userRecord.role === "teacher") {
+      countResult = await db
             .select({ count: sql<number>`count(distinct ${subjects.id})` })
             .from(subjects)
-            .leftJoin(classes, eq(classes.subjectId, subjects.id))
-            .where(eq(classes.teacherId, userId))
-        : userRecord.role === "student"
-        ? await db
+            .innerJoin(classes, eq(classes.subjectId, subjects.id))
+            .where(eq(classes.teacherId, userId));
+    } else if (userRecord.role === "student") {
+      countResult = await db
             .select({ count: sql<number>`count(distinct ${subjects.id})` })
             .from(subjects)
-            .leftJoin(classes, eq(classes.subjectId, subjects.id))
-            .leftJoin(enrollments, eq(enrollments.classId, classes.id))
-            .where(eq(enrollments.studentId, userId))
-        : await db.select({ count: sql<number>`count(*)` }).from(subjects);
+            .innerJoin(classes, eq(classes.subjectId, subjects.id))
+            .innerJoin(enrollments, eq(enrollments.classId, classes.id))
+            .where(eq(enrollments.studentId, userId));
+    } else {
+      countResult = await db.select({ count: sql<number>`count(*)` }).from(subjects);
+    }
 
-    const totalCount = countResult[0]?.count ?? 0;
+    const totalCount = Number(countResult[0]?.count ?? 0);
 
     const subjectsList =
       userRecord.role === "teacher"
@@ -278,21 +270,7 @@ router.get("/:id/subjects", async (req, res) => {
             .leftJoin(departments, eq(subjects.departmentId, departments.id))
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
             .where(eq(classes.teacherId, userId))
-            .groupBy(
-              subjects.id,
-              subjects.departmentId,
-              subjects.name,
-              subjects.code,
-              subjects.description,
-              subjects.createdAt,
-              subjects.updatedAt,
-              departments.id,
-              departments.code,
-              departments.name,
-              departments.description,
-              departments.createdAt,
-              departments.updatedAt
-            )
+            .groupBy(subjects.id, departments.id)
             .orderBy(desc(subjects.createdAt))
             .limit(limitPerPage)
             .offset(offset)
@@ -309,21 +287,7 @@ router.get("/:id/subjects", async (req, res) => {
             .leftJoin(classes, eq(classes.subjectId, subjects.id))
             .leftJoin(enrollments, eq(enrollments.classId, classes.id))
             .where(eq(enrollments.studentId, userId))
-            .groupBy(
-              subjects.id,
-              subjects.departmentId,
-              subjects.name,
-              subjects.code,
-              subjects.description,
-              subjects.createdAt,
-              subjects.updatedAt,
-              departments.id,
-              departments.code,
-              departments.name,
-              departments.description,
-              departments.createdAt,
-              departments.updatedAt
-            )
+            .groupBy(subjects.id, departments.id)
             .orderBy(desc(subjects.createdAt))
             .limit(limitPerPage)
             .offset(offset)
@@ -352,6 +316,26 @@ router.get("/:id/subjects", async (req, res) => {
   } catch (error) {
     console.error("GET /users/:id/subjects error:", error);
     res.status(500).json({ error: "Failed to fetch user subjects" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    // @ts-ignore
+    if (req.user?.role !== "admin") {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const [deletedUser] = await db
+      .delete(user)
+      .where(eq(user.id, req.params.id))
+      .returning();
+
+    if (!deletedUser) return res.status(404).json({ error: "User not found" });
+    res.status(204).end();
+  } catch (error) {
+    console.error("DELETE /users/:id error:", error);
+    res.status(500).json({ error: "Failed to delete user" });
   }
 });
 
